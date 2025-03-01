@@ -15,7 +15,7 @@
 
 using namespace android;
 
-int main(int argc, char const *argv[])
+int main()
 {
     sp<IServiceManager> sm = defaultServiceManager();
     sp<IBinder> binder = sm->getService(String16("IHello"));

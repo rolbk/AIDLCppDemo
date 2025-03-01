@@ -32,7 +32,7 @@ public:
     }
 };
 
-int main(int argc, char const *argv[])
+int main()
 {
     defaultServiceManager()->addService(String16("IHello"), new IHelloServer());
     ProcessState::self()->startThreadPool();
