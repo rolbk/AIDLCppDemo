@@ -1,6 +1,7 @@
 cc_binary {
     name: "IHelloClient",
-    srcs: ["HelloClient.cpp","IHello.cpp"],
+    srcs: ["src/HelloClient.cpp","gen/IHello.cpp"],
+    include_dirs: [ "AIDLCppDemo/gen/include/" ],
     shared_libs: [
         "liblog",
         "libcutils",
@@ -12,7 +13,8 @@ cc_binary {
 
 cc_binary {
     name: "IHelloServer",
-    srcs: ["HelloServer.cpp","IHello.cpp"],
+    srcs: ["src/HelloServer.cpp","gen/IHello.cpp"],
+    include_dirs: [ "AIDLCppDemo/gen/include/" ],
     shared_libs: [
         "liblog",
         "libcutils",
