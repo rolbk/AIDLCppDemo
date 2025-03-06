@@ -2,7 +2,7 @@
 GEN_DIR        := gen
 AIDL_DIR       := aidl
 PACKAGE_NAME   := com/yuandaima
-AIDL_FILE      := $(AIDL_DIR)/$(PACKAGE_NAME)/IHello.aidl
+#AIDL_FILE      := $(AIDL_DIR)/$(PACKAGE_NAME)/IHello.aidl
 BUILD_TARGET   := aosp_cf_arm64_phone-trunk_staging-eng
 
 .PHONY: all generate aosp-setup clean
@@ -15,7 +15,9 @@ generate:
 	@echo "Creating directory '$(GEN_DIR)' if it doesn't exist..."
 	@mkdir -p $(GEN_DIR)
 	@echo "Generating AIDL C++ code..."
-	@aidl-cpp $(AIDL_FILE) $(GEN_DIR)/include/ $(GEN_DIR)/IHello.cpp -I $(AIDL_DIR)
+	@aidl-cpp $(AIDL_DIR)/$(PACKAGE_NAME)/IHello.aidl $(GEN_DIR)/include/ $(GEN_DIR)/IHello.cpp -I $(AIDL_DIR)
+	@aidl-cpp $(AIDL_DIR)/$(PACKAGE_NAME)/IHelloCallback.aidl $(GEN_DIR)/include/ $(GEN_DIR)/IHelloCallback.cpp -I $(AIDL_DIR)
+	@aidl-cpp $(AIDL_DIR)/$(PACKAGE_NAME)/MyStruct.aidl $(GEN_DIR)/include/ $(GEN_DIR)/MyStruct.cpp -I $(AIDL_DIR)
 	@echo "Generation complete."
 
 build: generate
