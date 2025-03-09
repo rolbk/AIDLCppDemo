@@ -1,7 +1,7 @@
 cc_binary {
     name: "IHelloClient",
     srcs: ["src/HelloClient.cpp" ,"gen/*.cpp"],
-    include_dirs: [ "AIDLCppDemo/gen/include/" ],
+    include_dirs: [ "AIDLCppDemo/include/", "AIDLCppDemo/gen/include/" ],
     shared_libs: [
         "liblog",
         "libcutils",
@@ -13,12 +13,37 @@ cc_binary {
 
 cc_binary {
     name: "IHelloServer",
-    srcs: ["src/HelloServer.cpp" ,"gen/*.cpp"],
-    include_dirs: [ "AIDLCppDemo/gen/include/" ],
+    srcs: ["src/HelloServerMain.cpp", "src/HelloServer.cpp" ,"gen/*.cpp"],
+    include_dirs: [ "AIDLCppDemo/include/", "AIDLCppDemo/gen/include/" ],
     shared_libs: [
         "liblog",
         "libcutils",
         "libutils",
         "libbinder",
     ],
+}
+
+
+cc_fuzz {
+    name: "FuzzHelloServer",
+    include_dirs: [ "AIDLCppDemo/include/", "AIDLCppDemo/gen/include/" ],
+    defaults: [
+        "service_fuzzer_defaults",
+    ],
+    static_libs: [
+        "libbase",
+        "liblog",
+    ],
+    shared_libs: [
+        "liblog",
+        "libcutils",
+        "libutils",
+        "libbinder",
+    ],
+    srcs: ["src/FuzzHelloServer.cpp", "src/HelloServer.cpp" ,"gen/*.cpp"],
+    fuzz_config: {
+        cc: [
+            "somebody@google.com",
+        ],
+    },
 }

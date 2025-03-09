@@ -23,7 +23,6 @@ public:
     // Override the onWaitFinished() method with your custom logic.
     virtual ::android::binder::Status onWaitFinished() override {
         ALOGI("HelloCallback::onWaitFinished called");
-        // Add any additional processing if needed.
         return ::android::binder::Status::ok();
     }
 };
