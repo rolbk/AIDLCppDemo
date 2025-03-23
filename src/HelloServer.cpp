@@ -27,8 +27,14 @@ using namespace android;
 #include <utils/Log.h>
 #include <unistd.h> // for sleep()
 
+int counter;
+
 binder::Status IHelloServer::hello() {
     ALOGI("server: hello() called");
+
+    counter++;
+    ALOGI("FuzzCounter: %d", counter);
+
     return binder::Status();
 }
 
@@ -41,6 +47,8 @@ binder::Status IHelloServer::sum(int32_t x, int32_t y, int32_t* _aidl_return) {
         *p = 42;
     }
 
+    counter++;
+    ALOGI("FuzzCounter: %d", counter);
 
     return binder::Status();
 }
@@ -48,11 +56,14 @@ binder::Status IHelloServer::sum(int32_t x, int32_t y, int32_t* _aidl_return) {
 binder::Status IHelloServer::waitAndCallback(int32_t seconds,
         const sp<com::yuandaima::IHelloCallback>& callback) {
     ALOGI("server: waitAndCallback(%d) called", seconds);
-    sleep(seconds);
     if (callback != nullptr) {
         ALOGI("server: calling callback->onWaitFinished()");
         callback->onWaitFinished();
     }
+
+    counter++;
+    ALOGI("FuzzCounter: %d", counter);
+
     return binder::Status();
 }
 
@@ -79,6 +90,9 @@ binder::Status IHelloServer::printStruct(const com::yuandaima::MyStruct& data) {
 
     // For greaterString (std::string), print directly.
     ALOGI("server: greaterString: %s", data.greaterString.c_str());
+
+    counter++;
+    ALOGI("FuzzCounter: %d", counter);
 
     return binder::Status();
 }
