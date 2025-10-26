@@ -13,11 +13,13 @@
 #include "com/yuandaima/IHelloCallback.h"
 #include "com/yuandaima/BnHelloCallback.h"
 #include "com/yuandaima/MyStruct.h"
+#include "com/yuandaima/MultiString.h"  // New include
 #include "HelloServer.h"  // Provides IHelloServer definition
 #include <vector>
 #include <string>
+#include <chrono>
+#include <cstdlib>
 
-// Use the proper namespaces.
 using namespace android;
 using namespace com::yuandaima;
 
@@ -31,52 +33,40 @@ public:
 };
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
-    // Wrap fuzzed input.
+    // Terminate fuzzing after 30 seconds.
+    static auto startTime = std::chrono::steady_clock::now();
+    auto now = std::chrono::steady_clock::now();
+
+    if (std::chrono::duration_cast<std::chrono::seconds>(now - startTime).count() > 30) {
+        exit(0);
+    }
+
     FuzzedDataProvider provider(data, size);
-
-    // Create an instance of the service. This instance implements IHello and is a Binder.
     sp<IHelloServer> helloServer = sp<IHelloServer>::make();
-
-    // Use the binder interface directly.
     sp<IBinder> binder = helloServer;
-
-    // Clear the calling identity.
     IPCThreadState::self()->clearCallingIdentity();
 
-    // Run through the fuzzing loop.
     while (provider.remaining_bytes() > 0) {
-        // Choose one of the four methods (0: hello, 1: sum, 2: waitAndCallback, 3: printStruct).
-        uint8_t methodId = provider.ConsumeIntegralInRange<uint8_t>(0, 3);
-
-        // Compute the transaction code corresponding to the method.
-        // According to the generated BpHello code:
-        // hello:          FIRST_CALL_TRANSACTION + 0
-        // sum:            FIRST_CALL_TRANSACTION + 1
-        // waitAndCallback: FIRST_CALL_TRANSACTION + 2
-        // printStruct:    FIRST_CALL_TRANSACTION + 3
+        // Choose one of five methods: 0: hello, 1: sum, 2: waitAndCallback, 3: printStruct, 4: sendMultistring.
+        // force multistring
+        uint8_t methodId = 4; //provider.ConsumeIntegralInRange<uint8_t>(0, 4);
         uint32_t transactionCode = IBinder::FIRST_CALL_TRANSACTION + methodId;
-
-        // Consume some fuzzed flags.
         uint32_t flags = provider.ConsumeIntegral<uint32_t>();
 
-        // Create and configure a Parcel.
         Parcel dataParcel;
         dataParcel.setEnforceNoDataAvail(false);
         dataParcel.setServiceFuzzing();
-
-        // Write the interface token. (This is required by the service to validate the call.)
         if (binder != nullptr) {
             dataParcel.writeInterfaceToken(binder->getInterfaceDescriptor());
         }
 
-        // Fill the Parcel with the parameters for the chosen method.
         switch (methodId) {
             case 0: {
-                // hello() takes no extra parameters.
+                // hello(): no extra parameters.
                 break;
             }
             case 1: {
-                // sum(int32 x, int32 y, out int32 result)
+                // sum(int32 x, int32 y)
                 int32_t x = provider.ConsumeIntegral<int32_t>();
                 int32_t y = provider.ConsumeIntegral<int32_t>();
                 dataParcel.writeInt32(x);
@@ -87,54 +77,146 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
                 // waitAndCallback(int32 seconds, IHelloCallback callback)
                 int32_t seconds = provider.ConsumeIntegral<int32_t>();
                 dataParcel.writeInt32(seconds);
-                // Create a dummy callback and write its binder using the static asBinder helper.
                 sp<IHelloCallback> callback = new HelloCallbackFuzzer();
                 dataParcel.writeStrongBinder(IHelloCallback::asBinder(callback));
                 break;
             }
             case 3: {
                 // printStruct(MyStruct data)
-                // Write an int32 field.
                 int32_t dataField = provider.ConsumeIntegral<int32_t>();
                 dataParcel.writeInt32(dataField);
-                // Write two floating point values.
                 float majorVersion = provider.ConsumeFloatingPoint<float>();
                 float minorVersion = provider.ConsumeFloatingPoint<float>();
                 dataParcel.writeFloat(majorVersion);
                 dataParcel.writeFloat(minorVersion);
-                // Write a strong binder field. Here, we simply pass our hello binder.
                 dataParcel.writeStrongBinder(binder);
-                // Write an array: first the length, then each int32 element.
                 size_t arraySize = provider.ConsumeIntegralInRange<size_t>(0, 10);
                 dataParcel.writeInt32(static_cast<int32_t>(arraySize));
                 for (size_t i = 0; i < arraySize; ++i) {
                     int32_t element = provider.ConsumeIntegral<int32_t>();
                     dataParcel.writeInt32(element);
                 }
-                // Write a String16 field for 'greatString'.
                 std::string greatStr = provider.ConsumeRandomLengthString(50);
                 dataParcel.writeString16(String16(greatStr.c_str()));
-                // Write another String16 field for 'greaterString'.
                 std::string greaterStr = provider.ConsumeRandomLengthString(50);
                 dataParcel.writeString16(String16(greaterStr.c_str()));
+                break;
+            }
+            case 4: {
+
+                // ------- layout -------
+                /*
+                    public:
+                      ::android::String16 utf16String;
+                      ::std::string utf8String;
+                      ::android::String16 anotherUtf16;
+                      ::std::string anotherUtf8;
+                      ::std::optional<::android::String16> nullableUtf16;
+                      ::std::optional<::std::string> nullableUtf8;
+                      ::android::String16 extraUtf16;
+                      ::std::string extraUtf8;
+                    */
+
+
+//             ACTUAL IMPLEMENTATION:
+
+/*
+                // sendMultistring(MultiString multiStr): write nine fields.
+                // Field 1: utf16String (String16)
+                std::string s1 = provider.ConsumeRandomLengthString(10);
+                dataParcel.writeString16(String16(s1.c_str()));
+                // Field 2: utf8String (std::string) written using writeUtf8AsUtf16.
+                std::string s2 = provider.ConsumeRandomLengthString(10);
+                dataParcel.writeUtf8AsUtf16(s2);
+                // Field 3: anotherUtf16 (String16)
+                std::string s3 = provider.ConsumeRandomLengthString(10);
+                dataParcel.writeString16(String16(s3.c_str()));
+                // Field 4: anotherUtf8 (std::string)
+                std::string s4 = provider.ConsumeRandomLengthString(10);
+                dataParcel.writeUtf8AsUtf16(s4);
+                // Field 5: nullableUtf16 (String16)
+                std::string s5 = provider.ConsumeRandomLengthString(10);
+                dataParcel.writeString16(String16(s5.c_str()));
+                // Field 6: nullableUtf8 (std::string)
+                std::string s6 = provider.ConsumeRandomLengthString(10);
+                dataParcel.writeUtf8AsUtf16(s6);
+                // Field 7: extraUtf16 (String16)
+                std::string s7 = provider.ConsumeRandomLengthString(10);
+                dataParcel.writeString16(String16(s7.c_str()));
+                // Field 8: extraUtf8 (std::string)
+                std::string s8 = provider.ConsumeRandomLengthString(10);
+                dataParcel.writeUtf8AsUtf16(s8);
+*/
+
+                com::yuandaima::MultiString ms;
+
+                // sendMultistring(MultiString multiStr): write nine fields.
+                // Field 1: utf16String (String16)
+                std::string s1 = provider.ConsumeRandomLengthString(10);
+                ms.utf16String = String16(s1.c_str());
+                // Field 2: utf8String (std::string) written using writeUtf8AsUtf16.
+                std::string s2 = provider.ConsumeRandomLengthString(10);
+                ms.utf8String = s2;
+                // Field 3: anotherUtf16 (String16)
+                std::string s3 = provider.ConsumeRandomLengthString(10);
+                ms.anotherUtf16 = String16(s3.c_str());
+                // Field 4: anotherUtf8 (std::string)
+                std::string s4 = provider.ConsumeRandomLengthString(10);
+                ms.anotherUtf8 = s4;
+                // Field 5: nullableUtf16 (String16)
+                std::string s5 = provider.ConsumeRandomLengthString(10);
+                ms.nullableUtf16 = String16(s5.c_str());
+                // Field 6: nullableUtf8 (std::string)
+                std::string s6 = provider.ConsumeRandomLengthString(10);
+                ms.nullableUtf8 = s6;
+                // Field 7: extraUtf16 (String16)
+                std::string s7 = provider.ConsumeRandomLengthString(10);
+                ms.extraUtf16 = String16(s7.c_str());
+                // Field 8: extraUtf8 (std::string)
+                std::string s8 = provider.ConsumeRandomLengthString(10);
+                ms.extraUtf8 = s8;
+
+
+                /*
+                ms.utf16String = android::String16(u"longlongstring");
+                ms.utf8String = "longlongstring";
+                ms.anotherUtf16 = android::String16(u"longlongstring");
+                ms.anotherUtf8 = "longlongstring";
+                ms.nullableUtf16 = android::String16(u"longlongstring");
+                ms.nullableUtf8 = "longlongstring";
+                ms.extraUtf16 = android::String16(u"longlongstring");
+                ms.extraUtf8 = "longlongstring";
+*/
+                dataParcel.writeParcelable(ms);
+
+/*
+                com::yuandaima::MultiString ms;
+                ms.utf16String = android::String16(u"longlongstring");
+                ms.utf8String = "longlongstring";
+                ms.anotherUtf16 = android::String16(u"longlongstring");
+                ms.anotherUtf8 = "longlongstring";
+                ms.nullableUtf16 = android::String16(u"longlongstring");
+                ms.nullableUtf8 = "longlongstring";
+                ms.extraUtf16 = android::String16(u"longlongstring");
+                ms.extraUtf8 = "longlongstring";
+                dataParcel.writeParcelable(ms);
+*/
+
+                // for whatever reason, this method does not work for serialization
+                //ms.writeToParcel(&dataParcel);
+
                 break;
             }
             default:
                 break;
         }
 
-        // Create a reply Parcel.
         Parcel reply;
         reply.setEnforceNoDataAvail(false);
         reply.setServiceFuzzing();
+        binder->transact(transactionCode, dataParcel, &reply, 0);
 
-        // Transact the Parcel. The call goes through the binder driver.
-        binder->transact(transactionCode, dataParcel, &reply, flags);
-
-        // (Optional) Read back any returned binders or file descriptors to feed back into fuzzing.
-        auto retBinders = reply.debugReadAllStrongBinders();
-        // You could add these binders to a vector for further fuzzing if desired.
+        //std::cout << "Wrote: " << transactionCode << " with data " << dataParcel << std::endl;
     }
-
     return 0;
 }

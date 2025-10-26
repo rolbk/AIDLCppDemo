@@ -33,6 +33,7 @@ cc_fuzz {
     static_libs: [
         "libbase",
         "liblog",
+        "libbinder_random_parcel",
     ],
     shared_libs: [
         "liblog",
@@ -48,32 +49,9 @@ cc_fuzz {
     },
 }
 
-cc_fuzz {
-    name: "CustomFuzzerV1",
-    include_dirs: [ "AIDLCppDemo/include/", "AIDLCppDemo/gen/include/" ],
-    defaults: [
-        "service_fuzzer_defaults",
-    ],
-    static_libs: [
-        "libbase",
-        "liblog",
-    ],
-    shared_libs: [
-        "liblog",
-        "libcutils",
-        "libutils",
-        "libbinder",
-    ],
-    srcs: ["src/CustomFuzzerV1.cpp", "src/HelloServer.cpp" ,"gen/*.cpp"],
-    fuzz_config: {
-        cc: [
-            "somebody@google.com",
-        ],
-    },
-}
 
 cc_fuzz {
-    name: "CustomFuzzerV2",
+    name: "AutogenFuzzer",
     include_dirs: [ "AIDLCppDemo/include/", "AIDLCppDemo/gen/include/" ],
     defaults: [
         "service_fuzzer_defaults",
@@ -81,6 +59,7 @@ cc_fuzz {
     static_libs: [
         "libbase",
         "liblog",
+        "libbinder_random_parcel",
     ],
     shared_libs: [
         "liblog",
@@ -88,31 +67,7 @@ cc_fuzz {
         "libutils",
         "libbinder",
     ],
-    srcs: ["src/CustomFuzzerV2.cpp", "src/HelloServer.cpp" ,"gen/*.cpp"],
-    fuzz_config: {
-        cc: [
-            "somebody@google.com",
-        ],
-    },
-}
-
-cc_fuzz {
-    name: "CustomFuzzerV3",
-    include_dirs: [ "AIDLCppDemo/include/", "AIDLCppDemo/gen/include/" ],
-    defaults: [
-        "service_fuzzer_defaults",
-    ],
-    static_libs: [
-        "libbase",
-        "liblog",
-    ],
-    shared_libs: [
-        "liblog",
-        "libcutils",
-        "libutils",
-        "libbinder",
-    ],
-    srcs: ["src/CustomFuzzerV3.cpp", "src/HelloServer.cpp" ,"gen/*.cpp"],
+    srcs: ["src/FuzzHelloServerAutogen.cpp", "src/Autogen.cpp", "src/HelloServer.cpp" ,"gen/*.cpp"],
     fuzz_config: {
         cc: [
             "somebody@google.com",

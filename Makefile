@@ -18,15 +18,11 @@ generate:
 	@aidl-cpp $(AIDL_DIR)/$(PACKAGE_NAME)/IHello.aidl $(GEN_DIR)/include/ $(GEN_DIR)/IHello.cpp -I $(AIDL_DIR)
 	@aidl-cpp $(AIDL_DIR)/$(PACKAGE_NAME)/IHelloCallback.aidl $(GEN_DIR)/include/ $(GEN_DIR)/IHelloCallback.cpp -I $(AIDL_DIR)
 	@aidl-cpp $(AIDL_DIR)/$(PACKAGE_NAME)/MyStruct.aidl $(GEN_DIR)/include/ $(GEN_DIR)/MyStruct.cpp -I $(AIDL_DIR)
+	@aidl-cpp $(AIDL_DIR)/$(PACKAGE_NAME)/MultiString.aidl $(GEN_DIR)/include/ $(GEN_DIR)/MultiString.cpp -I $(AIDL_DIR)
 	@echo "Generation complete."
 
-build: generate
-	@if [ -f ../build/envsetup.sh ]; then \
-		echo "AOSP environment detected. Running envsetup.sh and lunch in an interactive shell..."; \
-		bash -i -c "source ../build/envsetup.sh && lunch $(BUILD_TARGET) && mm"; \
-	else \
-		echo "Not in an AOSP environment. Skipping AOSP setup."; \
-	fi
+build:
+	@mm
 
 # Clean up generated files.
 clean:

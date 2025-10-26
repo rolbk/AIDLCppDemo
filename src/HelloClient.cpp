@@ -11,16 +11,17 @@
 #include "com/yuandaima/IHelloCallback.h"
 #include "com/yuandaima/BnHelloCallback.h"
 #include "com/yuandaima/MyStruct.h"
+#include "com/yuandaima/MultiString.h"  // New include
 #include <vector>
 #include <string>
+#include <memory>
 
 using namespace android;
 using namespace com::yuandaima;
 
-// Custom callback implementation inheriting from BnHelloCallback.
+// Custom callback implementation.
 class HelloCallback : public BnHelloCallback {
 public:
-    // Override the onWaitFinished() method with your custom logic.
     virtual ::android::binder::Status onWaitFinished() override {
         ALOGI("HelloCallback::onWaitFinished called");
         return ::android::binder::Status::ok();
@@ -28,7 +29,7 @@ public:
 };
 
 int main() {
-    // Retrieve the service manager and wait for the IHello service.
+    // Retrieve the service.
     sp<IServiceManager> sm = defaultServiceManager();
     sp<IBinder> binder = sm->waitForService(String16("IHello"));
     if (binder == nullptr) {
@@ -40,18 +41,19 @@ int main() {
         ALOGE("client: Could not cast binder to IHello");
         return -1;
     }
-    
-    // Call hello() and sum() on the service.
+
+    // Call hello() and sum().
     hello->hello();
     int32_t result = 0;
     hello->sum(3, 4, &result);
     ALOGI("client: sum result: %d", result);
-    
-    // Create and use our custom callback implementation.
+
+    // Call waitAndCallback().
     sp<IHelloCallback> callback = new HelloCallback();
     hello->waitAndCallback(2, callback);
-    
-    // Create and populate a MyStruct instance.
+
+
+    // Prepare a MyStruct instance.
     com::yuandaima::MyStruct myData;
     myData.data = 42;
     myData.majorVersion = 1.1f;
@@ -60,9 +62,40 @@ int main() {
     myData.array = {10, 20, 30, 40};
     myData.greatString = String16("HelloGreat");
     myData.greaterString = "HelloGreater";
-    
-    // Call printStruct() with the populated structure.
     hello->printStruct(myData);
-    
+
+
+    com::yuandaima::MultiString multiStr;
+    // For fields defined as plain UTF‑16, assign using String16.
+    multiStr.utf16String   = String16("UTF16 Sample");
+    // For fields annotated with @utf8InCpp (backed by std::string), assign with a C‑string literal.
+    multiStr.utf8String    = "UTF8 Sample";
+    multiStr.anotherUtf16  = String16("Another UTF16");
+    multiStr.anotherUtf8   = "Another UTF8";
+    // For nullable fields, assign a unique_ptr value.
+    multiStr.nullableUtf16 = String16("Nullable UTF16");
+    multiStr.nullableUtf8  = "Nullable UTF8";
+    multiStr.extraUtf16    = String16("Extra UTF16");
+    multiStr.extraUtf8     = "Extra UTF8";
+
+    hello->sendMultistring(multiStr);
+
+    // 6) diverseArgs
+    std::vector<int32_t> vec = {1,2,3};
+    hello->diverseArgs(7, 123456789LL, 3.14f, 2.71828, true,
+                       String16("arg6"), String16("arg7"), vec);
+
+    // 7) testFD ---------------------------------------------------------
+    android::base::unique_fd fd(open("/dev/null", O_RDONLY));
+    hello->testFD(std::move(fd));
+
+    // 8) testArrayOfStrings --------------------------------------------
+    std::vector<String16> strVec = {String16("foo"), String16("bar"), String16("baz")};
+    hello->testArrayOfStrings(strVec);
+
+    // 9) testArrayOfBinders --------------------------------------------
+    std::vector<sp<IHelloCallback>> binderVec = {callback};
+    hello->testArrayOfBinders(binderVec);
+
     return 0;
 }
